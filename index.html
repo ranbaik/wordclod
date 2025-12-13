@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나만의 워드클라우드 생성기 V3</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        .container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .left-panel { flex: 1; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 300px; }
+        .right-panel { flex: 2; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 300px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 입력 요소 스타일 */
+        textarea { width: 100%; height: 120px; margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; resize: vertical; }
+        input[type="text"], select, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        
+        /* 색상 선택기 스타일 */
+        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        input[type="color"] { width: 50px; height: 40px; border: none; padding: 0; cursor: pointer; background: none; }
+        
+        button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.3s; }
+        button:hover { background-color: #45a049; }
+        button.download-btn { background-color: #008CBA; margin-top: 20px; width: auto; padding: 10px 30px; }
+        
+        /* 결과 화면 스타일 */
+        #canvas-container { position: relative; width: 600px; height: 600px; border: 1px solid #eee; margin-top: 20px; }
+        #word-cloud-canvas { width: 100%; height: 100%; }
+        
+        /* 테이블 스타일 */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        
+        .section-title { font-weight: bold; margin-bottom: 10px; display: block; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px; }
+        .first-section { margin-top: 0; }
+    </style>
+</head>
+<body>
+
+    <h1>☁️ 나만의 워드클라우드 생성기</h1>
+
+    <div class="container">
+        <div class="left-panel">
+            <span class="section-title first-section">1. 텍스트 입력</span>
+            <input type="file" id="fileInput" accept=".txt">
+            <textarea id="textInput" placeholder="여기에 텍스트를 붙여넣거나 파일을 업로드하세요..."></textarea>
+
+            <span class="section-title">2. 불용어 처리 (제외할 단어)</span>
+            <input type="text" id="stopWords" value="은 는 이 가 을 를 의 하 것 들 좀 잘 걍 과 있다 없다 에 에서 로 으로">
+
+            <span class="section-title">3. 모양 및 배경 선택</span>
+            <label style="font-size: 14px; font-weight: bold;">모양 선택:</label>
+            <select id="maskShape">
+                <option value="square">전체 사각형 (기본)</option>
+                <option value="circle">원형</option>
+                <option value="star">별 모양</option>
+                <option value="person.png">사람 상반신</option>
+                <option value="heart.png">하트</option>
+                <option value="clover.png">클로버(4잎)</option>
+                <option value="house.png">집</option>
+                <option value="cloud_shape.png">구름</option>
+            </select>
+
+            <div class="color-picker-wrapper">
+                <label for="bgColor" style="font-size: 14px; font-weight: bold;">배경색 선택:</label>
+                <input type="color" id="bgColor" value="#ffffff">
+            </div>
+            
+            <p style="font-size: 12px; color: #666;">* 사람, 하트 등을 선택하려면 해당 이미지 파일(png)이 같은 폴더에 있어야 합니다.</p>
+
+            <button onclick="generateWordCloud()">🚀 워드클라우드 생성</button>
+            
+            <div id="top-words-section" style="display:none;">
+                <span class="section-title">4. 빈도수 Top 15</span>
+                <table id="rankTable">
+                    <thead><tr><th>순위</th><th>단어</th><th>빈도</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <h2 style="margin: 0;">결과 이미지</h2>
+            <div id="canvas-container">
+                <canvas id="word-cloud-canvas" width="600" height="600"></canvas>
+            </div>
+            <button class="download-btn" onclick="downloadImage()">💾 이미지 다운로드</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. 파일 읽기 기능
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('textInput').value = e.target.result;
+            };
+            reader.readAsText(file, 'UTF-8');
+        });
+
+        // 2. 워드클라우드 생성 메인 함수
+        function generateWordCloud() {
+            const text = document.getElementById('textInput').value;
+            if (!text.trim()) { alert("텍스트를 입력해주세요!"); return; }
+
+            // 불용어 처리
+            const stopWordsStr = document.getElementById('stopWords').value;
+            const stopWords = new Set(stopWordsStr.split(' '));
+
+            // 배경색 가져오기
+            const bgColor = document.getElementById('bgColor').value;
+
+            // 단어 빈도 계산
+            const words = text.split(/[\s.,;:"'()\[\]{}?!]+/);
+            const wordCounts = {};
+            words.forEach(word => {
+                if (word.length > 1 && !stopWords.has(word)) {
+                    wordCounts[word] = (wordCounts[word] || 0) + 1;
+                }
+            });
+
+            let list = [];
+            for (let word in wordCounts) {
+                list.push([word, wordCounts[word]]);
+            }
+            list.sort((a, b) => b[1] - a[1]);
+
+            // Top 15 테이블 업데이트
+            updateRankTable(list.slice(0, 15));
+            document.getElementById('top-words-section').style.display = 'block';
+
+            // 캔버스 및 모양 설정
+            const shape = document.getElementById('maskShape').value;
+            const canvas = document.getElementById('word-cloud-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 캔버스 초기화 및 배경색 적용
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 이 부분은 라이브러리가 덮어쓰지만, 초기화를 위해 둠
+
+            // 옵션 설정
+            const options = {
+                list: list,
+                gridSize: 8,
+                weightFactor: function (size) { return Math.pow(size, 2.3) * canvas.width / 1024; },
+                fontFamily: 'Malgun Gothic, sans-serif',
+                color: 'random-dark', // 배경이 어두우면 'random-light'로 바꾸는 로직을 넣을 수도 있음
+                rotateRatio: 0.5,
+                backgroundColor: bgColor // ★ 여기에 선택한 배경색 적용
+            };
+
+            // 이미지 마스킹 로직
+            if (shape.endsWith('.png')) {
+                const img = new Image();
+                img.src = shape;
+                img.crossOrigin = "Anonymous";
+                
+                img.onload = function () {
+                    // 배경색을 먼저 칠해줌 (이미지 로드 시)
+                    options.clearCanvas = false;
+                    
+                    // 캔버스 전체에 배경색 칠하기
+                    ctx.fillStyle = bgColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // 배경에 이미지 모양을 흐리게 그려줌 (가이드라인)
+                    ctx.globalAlpha = 0.1;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    ctx.globalAlpha = 1.0;
+                    
+                    WordCloud(canvas, options);
+                };
+                img.onerror = function() {
+                    alert("이미지 파일을 찾을 수 없어 기본 모양으로 생성합니다.");
+                    WordCloud(canvas, options);
+                }
+            } else {
+                // 기본 도형일 경우
+                options.shape = shape;
+                WordCloud(canvas, options);
+            }
+        }
+
+        // 3. Top 15 테이블 표시
+        function updateRankTable(topList) {
+            const tbody = document.querySelector('#rankTable tbody');
+            tbody.innerHTML = '';
+            topList.forEach((item, index) => {
+                const row = `<tr><td>${index + 1}</td><td>${item[0]}</td><td>${item[1]}</td></tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // 4. 다운로드 기능
+        function downloadImage() {
+            const canvas = document.getElementById('word-cloud-canvas');
+            // toDataURL은 배경색이 투명이면 그대로 투명으로 저장함.
+            // 위에서 backgroundColor 옵션을 줬기 때문에 정상적으로 색이 나옴.
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.download = 'my-wordcloud.png';
+            link.href = image;
+            link.click();
+        }
+    </script>
+</body>
+</html>
