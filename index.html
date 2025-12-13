@@ -3,208 +3,1168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나만의 워드클라우드 생성기 V3</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
+    <title>워드클라우드 생성기</title>
     <style>
-        body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
-        h1 { text-align: center; color: #333; }
-        .container { display: flex; gap: 20px; flex-wrap: wrap; }
-        .left-panel { flex: 1; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 300px; }
-        .right-panel { flex: 2; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); min-width: 300px; display: flex; flex-direction: column; align-items: center; }
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700;900&family=Noto+Serif+KR:wght@400;700&display=swap');
         
-        /* 입력 요소 스타일 */
-        textarea { width: 100%; height: 120px; margin-bottom: 10px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; resize: vertical; }
-        input[type="text"], select, input[type="file"] { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
-        /* 색상 선택기 스타일 */
-        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        input[type="color"] { width: 50px; height: 40px; border: none; padding: 0; cursor: pointer; background: none; }
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #f59e0b;
+            --accent: #ec4899;
+            --success: #10b981;
+            --bg-start: #0f172a;
+            --bg-end: #1e293b;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
         
-        button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; transition: 0.3s; }
-        button:hover { background-color: #45a049; }
-        button.download-btn { background-color: #008CBA; margin-top: 20px; width: auto; padding: 10px 30px; }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            min-height: 100vh;
+            color: var(--text);
+            position: relative;
+            overflow-x: hidden;
+        }
         
-        /* 결과 화면 스타일 */
-        #canvas-container { position: relative; width: 600px; height: 600px; border: 1px solid #eee; margin-top: 20px; }
-        #word-cloud-canvas { width: 100%; height: 100%; }
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: pulse 15s ease-in-out infinite;
+            pointer-events: none;
+        }
         
-        /* 테이블 스타일 */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
         
-        .section-title { font-weight: bold; margin-bottom: 10px; display: block; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px; }
-        .first-section { margin-top: 0; }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        h1 {
+            font-family: 'Noto Serif KR', serif;
+            font-size: 4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            font-weight: 300;
+            animation: fadeIn 1s ease 0.2s both;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .panel-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .panel-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .panel-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        
+        .file-upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 1rem;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .file-upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .file-upload-zone:hover::before {
+            left: 100%;
+        }
+        
+        .file-upload-zone:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+        
+        .file-upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(236, 72, 153, 0.1);
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3));
+        }
+        
+        .upload-text {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+        
+        .supported-formats {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+        }
+        
+        .file-info {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .file-info.active {
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .shape-btn {
+            aspect-ratio: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 1rem;
+        }
+        
+        .shape-btn:hover {
+            border-color: var(--primary-light);
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateY(-3px);
+        }
+        
+        .shape-btn.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(79, 70, 229, 0.2));
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+        }
+        
+        .shape-emoji {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+        }
+        
+        .shape-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .generate-btn {
+            width: 100%;
+            padding: 1.25rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 1rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Pretendard', sans-serif;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s ease, height 0.5s ease;
+        }
+        
+        .generate-btn:hover::before {
+            width: 300%;
+            height: 300%;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(99, 102, 241, 0.4);
+        }
+        
+        .generate-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .generate-btn span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .result-area {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .btn-icon {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Pretendard', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-icon:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .wordcloud-canvas-wrapper {
+            flex: 1;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .wordcloud-canvas-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(45deg, transparent 48%, rgba(99, 102, 241, 0.03) 49%, rgba(99, 102, 241, 0.03) 51%, transparent 52%),
+                linear-gradient(-45deg, transparent 48%, rgba(99, 102, 241, 0.03) 49%, rgba(99, 102, 241, 0.03) 51%, transparent 52%);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+        
+        #wordcloudCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .placeholder {
+            text-align: center;
+            color: var(--text-muted);
+        }
+        
+        .placeholder-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+        
+        .placeholder-text {
+            font-size: 1.25rem;
+        }
+        
+        .stats-panel {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .stats-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .word-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .word-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid var(--primary);
+            border-radius: 0.75rem;
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .word-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .word-rank {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--primary);
+            min-width: 35px;
+        }
+        
+        .word-text {
+            flex: 1;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 0 1rem;
+        }
+        
+        .word-count {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 0.35rem 0.85rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loading-overlay.active {
+            display: flex;
+        }
+        
+        .loading-content {
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 6px solid rgba(99, 102, 241, 0.2);
+            border-top: 6px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 2rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 3rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1rem;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .shape-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .word-list {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-
-    <h1>☁️ 나만의 워드클라우드 생성기</h1>
-
     <div class="container">
-        <div class="left-panel">
-            <span class="section-title first-section">1. 텍스트 입력</span>
-            <input type="file" id="fileInput" accept=".txt">
-            <textarea id="textInput" placeholder="여기에 텍스트를 붙여넣거나 파일을 업로드하세요..."></textarea>
-
-            <span class="section-title">2. 불용어 처리 (제외할 단어)</span>
-            <input type="text" id="stopWords" value="은 는 이 가 을 를 의 하 것 들 좀 잘 걍 과 있다 없다 에 에서 로 으로">
-
-            <span class="section-title">3. 모양 및 배경 선택</span>
-            <label style="font-size: 14px; font-weight: bold;">모양 선택:</label>
-            <select id="maskShape">
-                <option value="square">전체 사각형 (기본)</option>
-                <option value="circle">원형</option>
-                <option value="star">별 모양</option>
-                <option value="person.png">사람 상반신</option>
-                <option value="heart.png">하트</option>
-                <option value="clover.png">클로버(4잎)</option>
-                <option value="house.png">집</option>
-                <option value="cloud_shape.png">구름</option>
-            </select>
-
-            <div class="color-picker-wrapper">
-                <label for="bgColor" style="font-size: 14px; font-weight: bold;">배경색 선택:</label>
-                <input type="color" id="bgColor" value="#ffffff">
+        <header>
+            <h1>워드클라우드 생성기</h1>
+            <p class="subtitle">다양한 문서를 시각적인 워드클라우드로 변환하세요</p>
+        </header>
+        
+        <div class="main-grid">
+            <!-- 좌측 컨트롤 패널 -->
+            <div class="control-panel">
+                <!-- 파일 업로드 -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div class="panel-icon">📁</div>
+                        <h3 class="panel-title">파일 선택</h3>
+                    </div>
+                    <div class="file-upload-zone" id="fileUploadZone">
+                        <div class="upload-icon">☁️</div>
+                        <p class="upload-text">파일을 드래그하거나 클릭하여 업로드</p>
+                        <p class="supported-formats">지원 형식: PDF, TXT, PPTX, DOCX, XLSX, HWP</p>
+                        <input type="file" id="fileInput" accept=".pdf,.txt,.pptx,.docx,.xlsx,.hwp,.doc,.xls,.ppt" style="display: none;">
+                    </div>
+                    <div class="file-info" id="fileInfo">
+                        <span>✅</span>
+                        <div style="flex: 1;">
+                            <div id="fileName" style="font-weight: 600; color: var(--success);"></div>
+                            <div id="fileSize" style="font-size: 0.85rem; color: var(--text-muted);"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 모양 선택 -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <div class="panel-icon">🎨</div>
+                        <h3 class="panel-title">모양 선택</h3>
+                    </div>
+                    <div class="shape-grid">
+                        <div class="shape-btn selected" data-shape="rectangle">
+                            <div class="shape-emoji">⬜</div>
+                            <div class="shape-name">사각형</div>
+                        </div>
+                        <div class="shape-btn" data-shape="heart">
+                            <div class="shape-emoji">❤️</div>
+                            <div class="shape-name">하트</div>
+                        </div>
+                        <div class="shape-btn" data-shape="clover">
+                            <div class="shape-emoji">🍀</div>
+                            <div class="shape-name">클로버</div>
+                        </div>
+                        <div class="shape-btn" data-shape="star">
+                            <div class="shape-emoji">⭐</div>
+                            <div class="shape-name">별</div>
+                        </div>
+                        <div class="shape-btn" data-shape="person">
+                            <div class="shape-emoji">👤</div>
+                            <div class="shape-name">사람</div>
+                        </div>
+                        <div class="shape-btn" data-shape="house">
+                            <div class="shape-emoji">🏠</div>
+                            <div class="shape-name">집</div>
+                        </div>
+                        <div class="shape-btn" data-shape="cloud">
+                            <div class="shape-emoji">☁️</div>
+                            <div class="shape-name">구름</div>
+                        </div>
+                        <div class="shape-btn" data-shape="circle">
+                            <div class="shape-emoji">⭕</div>
+                            <div class="shape-name">원</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 생성 버튼 -->
+                <button class="generate-btn" onclick="generateWordcloud()">
+                    <span>✨ 워드클라우드 생성하기</span>
+                </button>
             </div>
             
-            <p style="font-size: 12px; color: #666;">* 사람, 하트 등을 선택하려면 해당 이미지 파일(png)이 같은 폴더에 있어야 합니다.</p>
-
-            <button onclick="generateWordCloud()">🚀 워드클라우드 생성</button>
-            
-            <div id="top-words-section" style="display:none;">
-                <span class="section-title">4. 빈도수 Top 15</span>
-                <table id="rankTable">
-                    <thead><tr><th>순위</th><th>단어</th><th>빈도</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+            <!-- 우측 결과 영역 -->
+            <div class="result-area">
+                <div class="result-header">
+                    <div class="result-title">
+                        <span>🖼️</span>
+                        <span>생성 결과</span>
+                    </div>
+                    <div class="action-buttons hidden" id="actionButtons">
+                        <button class="btn-icon" onclick="downloadImage()">
+                            <span>💾</span>
+                            <span>다운로드</span>
+                        </button>
+                        <button class="btn-icon" onclick="reset()">
+                            <span>🔄</span>
+                            <span>초기화</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="wordcloud-canvas-wrapper">
+                    <div class="placeholder" id="placeholder">
+                        <div class="placeholder-icon">🎨</div>
+                        <p class="placeholder-text">파일을 업로드하고 생성 버튼을 클릭하세요</p>
+                    </div>
+                    <canvas id="wordcloudCanvas" class="hidden" width="1000" height="1000"></canvas>
+                </div>
             </div>
         </div>
-
-        <div class="right-panel">
-            <h2 style="margin: 0;">결과 이미지</h2>
-            <div id="canvas-container">
-                <canvas id="word-cloud-canvas" width="600" height="600"></canvas>
+        
+        <!-- 통계 패널 -->
+        <div class="stats-panel hidden" id="statsPanel">
+            <div class="stats-header">
+                <span>📊</span>
+                <span>상위 15개 단어</span>
             </div>
-            <button class="download-btn" onclick="downloadImage()">💾 이미지 다운로드</button>
+            <div class="word-list" id="wordList"></div>
         </div>
     </div>
-
+    
+    <!-- 로딩 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p class="loading-text">워드클라우드를 생성하는 중입니다...</p>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // 1. 파일 읽기 기능
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('textInput').value = e.target.result;
-            };
-            reader.readAsText(file, 'UTF-8');
+        let selectedShape = 'rectangle';
+        let extractedText = '';
+        
+        // 한국어 불용어 목록 (자동 처리)
+        const KOREAN_STOPWORDS = new Set([
+            '이', '있', '하', '것', '들', '그', '되', '수', '이', '보', '않', '없', '나', '사람', '주', '아니',
+            '등', '같', '우리', '때', '년', '가', '한', '지', '대하', '오', '말', '일', '그렇', '위하',
+            '때문', '그것', '두', '말하', '알', '그러나', '받', '못하', '일', '그런', '또', '문제', '더',
+            '사회', '많', '그리고', '좋', '크', '따르', '중', '나오', '가지', '씨', '시키', '만들',
+            '지금', '생각하', '그러', '속', '하나', '집', '살', '모르', '적', '월', '데', '자신', '안',
+            '어떤', '내', '내', '경우', '명', '생각', '시간', '그녀', '다시', '이런', '앞', '보이',
+            '번', '나', '다른', '어떻', '여자', '개', '전', '들', '사실', '이렇', '점', '싶', '말',
+            '정도', '좀', '원', '잘', '통하', '소리', '놓', '및', '등', '위', '하지만', '그래서',
+            '그런데', '또한', '그리고', '하지만', '그러나', '왜냐하면', '때문에', '통해', '대해',
+            '관해', '따라', '의해', '와', '과', '도', '를', '을', '에', '의', '가', '이', '은', '는',
+            '에게', '께서', '에서', '으로', '로', '부터', '까지', '보다', '처럼', '같이', '만큼'
+        ]);
+        
+        // PDF.js 워커 설정
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        // 파일 업로드 이벤트
+        const uploadZone = document.getElementById('fileUploadZone');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
         });
-
-        // 2. 워드클라우드 생성 메인 함수
-        function generateWordCloud() {
-            const text = document.getElementById('textInput').value;
-            if (!text.trim()) { alert("텍스트를 입력해주세요!"); return; }
-
-            // 불용어 처리
-            const stopWordsStr = document.getElementById('stopWords').value;
-            const stopWords = new Set(stopWordsStr.split(' '));
-
-            // 배경색 가져오기
-            const bgColor = document.getElementById('bgColor').value;
-
-            // 단어 빈도 계산
-            const words = text.split(/[\s.,;:"'()\[\]{}?!]+/);
-            const wordCounts = {};
+        
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+        
+        // 파일 선택 처리
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        }
+        
+        // 파일 처리
+        async function handleFile(file) {
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('active');
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            try {
+                let text = '';
+                
+                switch (ext) {
+                    case 'txt':
+                        text = await readTextFile(file);
+                        break;
+                    case 'pdf':
+                        text = await readPdfFile(file);
+                        break;
+                    case 'docx':
+                    case 'doc':
+                        text = await readDocxFile(file);
+                        break;
+                    case 'xlsx':
+                    case 'xls':
+                        text = await readExcelFile(file);
+                        break;
+                    case 'pptx':
+                    case 'ppt':
+                        text = await readPptxFile(file);
+                        break;
+                    case 'hwp':
+                        alert('HWP 파일은 현재 브라우저에서 직접 읽을 수 없습니다. TXT, PDF, DOCX 형식으로 변환 후 업로드해주세요.');
+                        return;
+                    default:
+                        alert('지원하지 않는 파일 형식입니다.');
+                        return;
+                }
+                
+                extractedText = text;
+                console.log('추출된 텍스트 길이:', text.length);
+            } catch (error) {
+                console.error('파일 읽기 오류:', error);
+                alert('파일을 읽는 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 텍스트 파일 읽기
+        function readTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+        
+        // PDF 파일 읽기
+        async function readPdfFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let text = '';
+            
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const pageText = content.items.map(item => item.str).join(' ');
+                text += pageText + '\n';
+            }
+            
+            return text;
+        }
+        
+        // DOCX 파일 읽기
+        async function readDocxFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            return result.value;
+        }
+        
+        // Excel 파일 읽기
+        async function readExcelFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            let text = '';
+            
+            workbook.SheetNames.forEach(sheetName => {
+                const sheet = workbook.Sheets[sheetName];
+                const csv = XLSX.utils.sheet_to_csv(sheet);
+                text += csv + '\n';
+            });
+            
+            return text;
+        }
+        
+        // PPTX 파일 읽기 (간단한 방법)
+        async function readPptxFile(file) {
+            // PPTX는 복잡한 구조라 간단히 DOCX와 유사하게 처리
+            try {
+                return await readDocxFile(file);
+            } catch (error) {
+                alert('PPTX 파일 읽기에 실패했습니다. DOCX나 PDF로 변환 후 시도해주세요.');
+                return '';
+            }
+        }
+        
+        // 파일 크기 포맷팅
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        // 모양 선택
+        document.querySelectorAll('.shape-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedShape = btn.dataset.shape;
+            });
+        });
+        
+        // 한글 단어 추출 (불용어 자동 제거)
+        function extractKoreanWords(text) {
+            const words = text.match(/[가-힣]+/g) || [];
+            return words.filter(word => 
+                word.length >= 2 && 
+                !KOREAN_STOPWORDS.has(word) &&
+                !/^[ㄱ-ㅎㅏ-ㅣ]+$/.test(word) // 자음/모음만 있는 것 제외
+            );
+        }
+        
+        // 단어 빈도 계산
+        function countWords(words) {
+            const freq = {};
             words.forEach(word => {
-                if (word.length > 1 && !stopWords.has(word)) {
-                    wordCounts[word] = (wordCounts[word] || 0) + 1;
+                freq[word] = (freq[word] || 0) + 1;
+            });
+            return Object.entries(freq)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 50);
+        }
+        
+        // 워드클라우드 생성
+        function generateWordcloud() {
+            if (!extractedText || extractedText.trim() === '') {
+                alert('먼저 파일을 업로드해주세요!');
+                return;
+            }
+            
+            document.getElementById('loadingOverlay').classList.add('active');
+            
+            setTimeout(() => {
+                const words = extractKoreanWords(extractedText);
+                
+                if (words.length === 0) {
+                    alert('유효한 한글 단어를 찾을 수 없습니다!');
+                    document.getElementById('loadingOverlay').classList.remove('active');
+                    return;
+                }
+                
+                const wordFreq = countWords(words);
+                const topWords = wordFreq.slice(0, 15);
+                
+                drawWordcloud(wordFreq);
+                displayTopWords(topWords);
+                
+                document.getElementById('placeholder').classList.add('hidden');
+                document.getElementById('wordcloudCanvas').classList.remove('hidden');
+                document.getElementById('actionButtons').classList.remove('hidden');
+                document.getElementById('statsPanel').classList.remove('hidden');
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }, 800);
+        }
+        
+        // 워드클라우드 그리기
+        function drawWordcloud(wordFreq) {
+            const canvas = document.getElementById('wordcloudCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // 배경 그라디언트
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(1, '#f0f9ff');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // 마스크 생성
+            const mask = createMask(selectedShape, width, height);
+            
+            // 색상 팔레트
+            const colors = [
+                '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+                '#3b82f6', '#6366f1', '#a855f7', '#ef4444', '#14b8a6',
+                '#f97316', '#84cc16', '#06b6d4', '#8b5cf6', '#f43f5e'
+            ];
+            
+            const maxFreq = wordFreq[0][1];
+            const minFreq = wordFreq[wordFreq.length - 1][1];
+            const placed = [];
+            
+            wordFreq.forEach(([word, freq], index) => {
+                const fontSize = Math.floor(30 + (freq - minFreq) / (maxFreq - minFreq) * 100);
+                const color = colors[index % colors.length];
+                
+                let placed_word = false;
+                let attempts = 0;
+                const maxAttempts = 150;
+                
+                while (!placed_word && attempts < maxAttempts) {
+                    const x = Math.random() * (width - fontSize * word.length * 0.7);
+                    const y = Math.random() * (height - fontSize) + fontSize;
+                    const angle = (Math.random() - 0.5) * 0.6;
+                    
+                    if (mask && !checkMask(mask, x, y, width, height)) {
+                        attempts++;
+                        continue;
+                    }
+                    
+                    const bounds = {
+                        x: x,
+                        y: y - fontSize,
+                        width: fontSize * word.length * 0.7,
+                        height: fontSize
+                    };
+                    
+                    let collision = false;
+                    for (const p of placed) {
+                        if (checkCollision(bounds, p)) {
+                            collision = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!collision) {
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(angle);
+                        
+                        // 그림자 효과
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+                        ctx.shadowBlur = 4;
+                        ctx.shadowOffsetX = 2;
+                        ctx.shadowOffsetY = 2;
+                        
+                        ctx.fillStyle = color;
+                        ctx.font = `900 ${fontSize}px 'Pretendard', 'Noto Sans KR', sans-serif`;
+                        ctx.fillText(word, 0, 0);
+                        ctx.restore();
+                        
+                        placed.push(bounds);
+                        placed_word = true;
+                    }
+                    
+                    attempts++;
                 }
             });
-
-            let list = [];
-            for (let word in wordCounts) {
-                list.push([word, wordCounts[word]]);
-            }
-            list.sort((a, b) => b[1] - a[1]);
-
-            // Top 15 테이블 업데이트
-            updateRankTable(list.slice(0, 15));
-            document.getElementById('top-words-section').style.display = 'block';
-
-            // 캔버스 및 모양 설정
-            const shape = document.getElementById('maskShape').value;
-            const canvas = document.getElementById('word-cloud-canvas');
+        }
+        
+        // 마스크 생성
+        function createMask(shape, width, height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext('2d');
             
-            // 캔버스 초기화 및 배경색 적용
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // 이 부분은 라이브러리가 덮어쓰지만, 초기화를 위해 둠
-
-            // 옵션 설정
-            const options = {
-                list: list,
-                gridSize: 8,
-                weightFactor: function (size) { return Math.pow(size, 2.3) * canvas.width / 1024; },
-                fontFamily: 'Malgun Gothic, sans-serif',
-                color: 'random-dark', // 배경이 어두우면 'random-light'로 바꾸는 로직을 넣을 수도 있음
-                rotateRatio: 0.5,
-                backgroundColor: bgColor // ★ 여기에 선택한 배경색 적용
-            };
-
-            // 이미지 마스킹 로직
-            if (shape.endsWith('.png')) {
-                const img = new Image();
-                img.src = shape;
-                img.crossOrigin = "Anonymous";
-                
-                img.onload = function () {
-                    // 배경색을 먼저 칠해줌 (이미지 로드 시)
-                    options.clearCanvas = false;
+            ctx.fillStyle = 'black';
+            
+            const cx = width / 2;
+            const cy = height / 2;
+            
+            switch (shape) {
+                case 'circle':
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, Math.min(width, height) / 2 - 100, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
                     
-                    // 캔버스 전체에 배경색 칠하기
-                    ctx.fillStyle = bgColor;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // 배경에 이미지 모양을 흐리게 그려줌 (가이드라인)
-                    ctx.globalAlpha = 0.1;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    ctx.globalAlpha = 1.0;
+                case 'heart':
+                    ctx.beginPath();
+                    for (let angle = 0; angle < 360; angle++) {
+                        const t = angle * Math.PI / 180;
+                        const x = 16 * Math.pow(Math.sin(t), 3);
+                        const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                        if (angle === 0) {
+                            ctx.moveTo(cx + x * 25, cy - y * 25);
+                        } else {
+                            ctx.lineTo(cx + x * 25, cy - y * 25);
+                        }
+                    }
+                    ctx.fill();
+                    break;
                     
-                    WordCloud(canvas, options);
-                };
-                img.onerror = function() {
-                    alert("이미지 파일을 찾을 수 없어 기본 모양으로 생성합니다.");
-                    WordCloud(canvas, options);
-                }
-            } else {
-                // 기본 도형일 경우
-                options.shape = shape;
-                WordCloud(canvas, options);
+                case 'star':
+                    ctx.beginPath();
+                    const outerRadius = Math.min(width, height) / 2 - 80;
+                    const innerRadius = outerRadius / 2.5;
+                    for (let i = 0; i < 10; i++) {
+                        const angle = Math.PI / 2 + i * Math.PI / 5;
+                        const r = i % 2 === 0 ? outerRadius : innerRadius;
+                        const x = cx + r * Math.cos(angle);
+                        const y = cy - r * Math.sin(angle);
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                    
+                case 'cloud':
+                    [[cx - 120, cy, 120], [cx, cy - 60, 140], [cx + 120, cy, 120],
+                     [cx - 60, cy + 40, 100], [cx + 60, cy + 40, 100]].forEach(([x, y, r]) => {
+                        ctx.beginPath();
+                        ctx.arc(x, y, r, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    break;
+                    
+                case 'clover':
+                    const radius = Math.min(width, height) / 4;
+                    [[0, -radius/2], [radius/2, 0], [0, radius/2], [-radius/2, 0]].forEach(([ox, oy]) => {
+                        ctx.beginPath();
+                        ctx.arc(cx + ox, cy + oy, radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius/3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                    
+                case 'person':
+                    ctx.beginPath();
+                    ctx.arc(cx, cy - 150, 100, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(cx, cy + 100, 150, 250, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                    
+                case 'house':
+                    ctx.beginPath();
+                    ctx.moveTo(cx, 100);
+                    ctx.lineTo(150, 350);
+                    ctx.lineTo(width - 150, 350);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillRect(150, 350, width - 300, height - 450);
+                    break;
+                    
+                default:
+                    ctx.fillRect(80, 80, width - 160, height - 160);
             }
+            
+            return ctx.getImageData(0, 0, width, height);
         }
-
-        // 3. Top 15 테이블 표시
-        function updateRankTable(topList) {
-            const tbody = document.querySelector('#rankTable tbody');
-            tbody.innerHTML = '';
-            topList.forEach((item, index) => {
-                const row = `<tr><td>${index + 1}</td><td>${item[0]}</td><td>${item[1]}</td></tr>`;
-                tbody.innerHTML += row;
+        
+        function checkMask(mask, x, y, width, height) {
+            const px = Math.floor(x);
+            const py = Math.floor(y);
+            if (px < 0 || px >= width || py < 0 || py >= height) return false;
+            const index = (py * width + px) * 4;
+            return mask.data[index + 3] > 0;
+        }
+        
+        function checkCollision(a, b) {
+            return !(a.x + a.width < b.x || 
+                    b.x + b.width < a.x || 
+                    a.y + a.height < b.y || 
+                    b.y + b.height < a.y);
+        }
+        
+        // 상위 단어 표시
+        function displayTopWords(topWords) {
+            const list = document.getElementById('wordList');
+            list.innerHTML = '';
+            topWords.forEach(([word, count], index) => {
+                const item = document.createElement('div');
+                item.className = 'word-item';
+                item.style.animationDelay = `${index * 0.05}s`;
+                item.innerHTML = `
+                    <span class="word-rank">${index + 1}</span>
+                    <span class="word-text">${word}</span>
+                    <span class="word-count">${count}</span>
+                `;
+                list.appendChild(item);
             });
         }
-
-        // 4. 다운로드 기능
+        
+        // 이미지 다운로드
         function downloadImage() {
-            const canvas = document.getElementById('word-cloud-canvas');
-            // toDataURL은 배경색이 투명이면 그대로 투명으로 저장함.
-            // 위에서 backgroundColor 옵션을 줬기 때문에 정상적으로 색이 나옴.
-            const image = canvas.toDataURL("image/png");
+            const canvas = document.getElementById('wordcloudCanvas');
             const link = document.createElement('a');
-            link.download = 'my-wordcloud.png';
-            link.href = image;
+            link.download = `wordcloud_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
             link.click();
+        }
+        
+        // 초기화
+        function reset() {
+            extractedText = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').classList.remove('active');
+            document.getElementById('placeholder').classList.remove('hidden');
+            document.getElementById('wordcloudCanvas').classList.add('hidden');
+            document.getElementById('actionButtons').classList.add('hidden');
+            document.getElementById('statsPanel').classList.add('hidden');
         }
     </script>
 </body>
